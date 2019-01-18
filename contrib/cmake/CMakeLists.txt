@@ -110,7 +110,8 @@ find_package( Threads REQUIRED )
 find_package( ZLIB REQUIRED )
 find_package( TBB REQUIRED )
 find_package( PythonLibs 2.7 REQUIRED )
-find_package( Boost REQUIRED COMPONENTS signals iostreams filesystem date_time wave regex system chrono python )
+find_package( Boost REQUIRED COMPONENTS signals iostreams filesystem date_time timer wave regex system chrono python )  #Naiqi's change
+#find_package( Boost REQUIRED COMPONENTS signals iostreams filesystem date_time wave regex system chrono python )
 find_package( IlmBase REQUIRED )
 find_package( OpenEXR REQUIRED )
 find_package( Freetype REQUIRED )
@@ -137,6 +138,7 @@ set( BASE_LIBS
      ${Boost_IOSTREAMS_LIBRARY}
      ${Boost_FILESYSTEM_LIBRARY}
      ${Boost_DATE_TIME_LIBRARY}
+     ${Boost_TIMER_LIBRARY}   #Naiqi's change
      ${Boost_THREAD_LIBRARY}
      ${Boost_WAVE_LIBRARY}
      ${Boost_REGEX_LIBRARY}
@@ -184,6 +186,7 @@ if( ${WITH_IECORE_PYTHON} )
     if ( WIN32 )
         set_target_properties( _IECore PROPERTIES SUFFIX ".pyd" )
     endif()
+    set_target_properties(_IECore PROPERTIES PREFIX "")  #Naiqi's change: get rid of prefix "lib" for python library
     # Install
     install( TARGETS _IECore DESTINATION python/IECore )
     install( FILES ${IECORE_PY_FILES} DESTINATION python/IECore )
@@ -214,6 +217,7 @@ if( ${WITH_IECORE_GL} )
         if ( WIN32 )
             set_target_properties( _IECoreGL PROPERTIES SUFFIX ".pyd" )
         endif()
+        set_target_properties(_IECoreGL PROPERTIES PREFIX "")  #Naiqi's change: get rid of prefix "lib" for python library
         install( TARGETS _IECoreGL DESTINATION python/IECoreGL )
         install( FILES ${IECOREGL_PY_FILES} DESTINATION python/IECoreGL )
     endif()
@@ -244,6 +248,7 @@ if( ${WITH_IECORE_IMAGE} )
         if ( WIN32 )
             set_target_properties( _IECoreImage PROPERTIES SUFFIX ".pyd" )
         endif()
+        set_target_properties(_IECoreImage PROPERTIES PREFIX "")  #Naiqi's change: get rid of prefix "lib" for python library
         install( TARGETS _IECoreImage DESTINATION python/IECoreImage )
         install( FILES ${IECOREIMAGE_PY_FILES} DESTINATION python/IECoreImage )
         install( FILES ${IECOREIMAGEBINDINGS_H_FILES} DESTINATION include/IECoreImageBindings )
@@ -272,6 +277,7 @@ if( ${WITH_IECORE_SCENE} )
         if ( WIN32 )
             set_target_properties( _IECoreScene PROPERTIES SUFFIX ".pyd" )
         endif()
+        set_target_properties(_IECoreScene PROPERTIES PREFIX "")  #Naiqi's change: get rid of prefix "lib" for python library
         install( TARGETS _IECoreScene DESTINATION python/IECoreScene )
         install( FILES ${IECORESCENE_PY_FILES} DESTINATION python/IECoreScene )
     endif()
@@ -302,6 +308,7 @@ if( ${WITH_IECORE_ALEMBIC} )
         if ( WIN32 )
             set_target_properties( _IECoreAlembic PROPERTIES SUFFIX ".pyd" )
         endif()
+        set_target_properties(_IECoreAlembic PROPERTIES PREFIX "")  #Naiqi's change: get rid of prefix "lib" for python library
         install( TARGETS _IECoreAlembic DESTINATION python/IECoreAlembic )
         install( FILES ${IECOREALEMBIC_PY_FILES} DESTINATION python/IECoreAlembic )
     endif()
@@ -363,6 +370,7 @@ if( ${WITH_IECORE_ARNOLD} )
         if ( WIN32 )
             set_target_properties( _IECoreArnold PROPERTIES SUFFIX ".pyd" )
         endif()
+        set_target_properties(_IECoreArnold PROPERTIES PREFIX "")  #Naiqi's change: get rid of prefix "lib" for python library
         install( TARGETS _IECoreArnold DESTINATION python/IECoreArnold )
         install( FILES ${IECOREARNOLD_PY_FILES} DESTINATION python/IECoreArnold )
     endif()
@@ -403,6 +411,7 @@ if( ${WITH_IECORE_APPLESEED} )
         if ( WIN32 )
             set_target_properties( _IECoreAppleseed PROPERTIES SUFFIX ".pyd" )
         endif()
+        set_target_properties(_IECoreAppleseed PROPERTIES PREFIX "")  #Naiqi's change: get rid of prefix "lib" for python library
         install( TARGETS _IECoreAppleseed DESTINATION python/IECoreAppleseed )
         install( FILES ${IECOREAPPLESEED_PY_FILES} DESTINATION python/IECoreAppleseed )
     endif()
@@ -443,6 +452,7 @@ if( ${WITH_IECORE_USD} )
         if ( WIN32 )
             set_target_properties( _IECoreUSD PROPERTIES SUFFIX ".pyd" )
         endif()
+        set_target_properties(_IECoreUSD PROPERTIES PREFIX "")  #Naiqi's change: get rid of prefix "lib" for python library
         install( TARGETS _IECoreUSD DESTINATION python/IECoreUSD )
         install( FILES ${IECOREUSD_PY_FILES} DESTINATION python/IECoreUSD )
     endif()
