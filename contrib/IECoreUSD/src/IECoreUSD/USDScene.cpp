@@ -36,6 +36,7 @@
 
 #include "IECoreScene/Camera.h"
 #include "IECoreScene/CurvesPrimitive.h"
+#include "IECoreScene/ExternalProcedural.h"
 #include "IECoreScene/MeshPrimitive.h"
 #include "IECoreScene/PointsPrimitive.h"
 #include "IECoreScene/SpherePrimitive.h"
@@ -49,8 +50,11 @@ IECORE_PUSH_DEFAULT_VISIBILITY
 #include "pxr/base/gf/matrix3f.h"
 #include "pxr/base/gf/matrix4d.h"
 #include "pxr/base/gf/matrix4f.h"
+#include "pxr/usd/sdf/assetPath.h"
 #include "pxr/usd/usd/collectionAPI.h"
 #include "pxr/usd/usd/stage.h"
+#include "pxr/usd/usd/object.h"
+#include "pxr/usd/usd/variantSets.h"
 #include "pxr/usd/usdGeom/basisCurves.h"
 #include "pxr/usd/usdGeom/bboxCache.h"
 #include "pxr/usd/usdGeom/mesh.h"
@@ -1020,6 +1024,17 @@ IECoreScene::CurvesPrimitivePtr convertPrimitive( pxr::UsdGeomCurves curves, pxr
 	return newCurves;
 }
 
+// convert selected variantSet ass to external procedural object so that Gaffer can render using this ass file
+IECoreScene::ExternalProceduralPtr convertRenderProxy(pxr::UsdPrim variantSet, pxr::UsdTimeCode time)
+{
+  pxr::UsdAttribute mayaRefAttr = variantSet.GetAttribute(pxr::TfToken("mayaReference"));
+  pxr::SdfAssetPath filePath;
+  mayaRefAttr.Get(&filePath, time);
+  IECoreScene::ExternalProceduralPtr result = new IECoreScene::ExternalProcedural( "procedural", Imath::Box3f(Imath::V3f( -0.5 ), Imath::V3f( 0.5 )));
+  result->parameters()->writable()["filename"] = new IECore::StringData( filePath.GetAssetPath() );
+  return result;
+}
+
 IECoreScene::MeshPrimitivePtr convertPrimitive( pxr::UsdGeomMesh mesh, pxr::UsdTimeCode time )
 {
 	pxr::UsdAttribute subdivSchemeAttr = mesh.GetSubdivisionSchemeAttr();
@@ -1285,11 +1300,27 @@ bool isConvertible( pxr::UsdPrim prim )
 		return true;
 	}
 
+
 	pxr::UsdGeomSphere sphere( prim );
 	if ( sphere )
 	{
 		return true;
 	}
+
+    // Special handling of "ALMayaReference" node in variantSet
+    // "ALMayaReference" and "mayaReference" are values that are hardcoded in Anim logic exporting
+    // therefore they are reliable to use
+    if(prim && prim.GetTypeName().GetString() == "ALMayaReference")
+    {
+        pxr::SdfAssetPath filePath;
+        prim.GetAttribute(pxr::TfToken("mayaReference")).Get(&filePath);
+
+        std::string finalPath = filePath.GetAssetPath();
+        if(finalPath.substr(finalPath.find_last_of('.')+1) == "ass")
+            return true;
+        else return false;
+    }
+
 
 	return false;
 }
@@ -1297,8 +1328,8 @@ bool isConvertible( pxr::UsdPrim prim )
 IECore::ConstObjectPtr convertPrimitive( pxr::UsdPrim prim, pxr::UsdTimeCode time )
 {
 	if( pxr::UsdGeomMesh mesh = pxr::UsdGeomMesh( prim ) )
-	{
-		return convertPrimitive( mesh, time );
+  {
+    return convertPrimitive( mesh, time );
 	}
 
 	if( pxr::UsdGeomPoints points = pxr::UsdGeomPoints( prim ) )
@@ -1321,7 +1352,20 @@ IECore::ConstObjectPtr convertPrimitive( pxr::UsdPrim prim, pxr::UsdTimeCode tim
 		return convertPrimitive( sphere, time );
 	}
 
-	return nullptr;
+    // Special handling of "ALMayaReference" node in variantSet
+    // "ALMayaReference" and "mayaReference" are values that are hardcoded in Anim logic exporting
+    // therefore they are reliable to use
+    if(prim && prim.GetTypeName().GetString() == "ALMayaReference")
+    {
+        pxr::SdfAssetPath filePath;
+        prim.GetAttribute(pxr::TfToken("mayaReference")).Get(&filePath);
+
+        std::string finalPath = filePath.GetAssetPath();
+        if(finalPath.substr(finalPath.find_last_of('.')+1) == "ass")
+            return convertRenderProxy( prim, time );
+    }
+
+    return nullptr;
 }
 
 bool hasTimeVaryingPrimVars( pxr::UsdGeomImageable imagable )
@@ -1451,6 +1495,7 @@ class USDScene::Reader : public USDScene::IO
 
 			m_timeCodesPerSecond = m_usdStage->GetTimeCodesPerSecond();
 			m_rootPrim = m_usdStage->GetPseudoRoot();
+
 		}
 
 		pxr::UsdPrim root() const override
@@ -2105,12 +2150,10 @@ void USDScene::childNames( SceneInterface::NameList &childNames ) const
 {
 	for( const auto &i : m_location->prim.GetFilteredChildren( pxr::UsdTraverseInstanceProxies() ) )
 	{
-		pxr::UsdGeomXformable xformable ( i );
+        pxr::UsdPrim layerPrim(i);
 
-		if( xformable )
-		{
-			childNames.push_back( IECore::InternedString( i.GetName() ) );
-		}
+        if(layerPrim)
+            childNames.push_back(IECore::InternedString(layerPrim.GetName()));
 	}
 }
 
