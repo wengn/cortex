@@ -36,8 +36,16 @@
 
 #include "IECoreScene/Renderer.h"
 
+#include "IECoreArnold/NodeAlgo.h" //Naiqi's change
+#include "IECoreArnold/ParameterAlgo.h" //Naiqi's change
+#include "ai.h" //Naiqi's change
+#include "ai_array.h"
+#include "IECore/SimpleTypedData.h"
+#include "IECoreArnold/ParameterAlgo.h"
+
 using namespace IECore;
 using namespace IECoreScene;
+using namespace IECoreArnold; //Naiqi's change
 
 IE_CORE_DEFINEOBJECTTYPEDESCRIPTION( ExternalProcedural );
 
@@ -125,6 +133,7 @@ void ExternalProcedural::load( LoadContextPtr context )
 	container->read( g_boundEntry, b, 6 );
 
 	m_parameters = context->load<CompoundData>( container.get(), g_parametersEntry );
+
 }
 
 bool ExternalProcedural::isEqualTo( const Object *other ) const
@@ -157,3 +166,56 @@ void ExternalProcedural::hash( MurmurHash &h ) const
 	h.append( m_bound );
 	m_parameters->hash( h );
 }
+
+//Naiqi's change
+//Parse the ass file and parse polymesh info
+void ExternalProcedural::readMeshPoints()
+{
+  // Current implementation: the ass file path is not stored on the m_fileName, you have to get the information this way
+  const StringData* filePath = parameters()->member< StringData >(InternedString("filename"));
+  if(!filePath)
+    return;
+
+  if(AiASSLoad(filePath->readable().c_str(), AI_NODE_SHAPE) != -1)
+  {
+    AtNodeIterator * iter = AiUniverseGetNodeIterator(AI_NODE_SHAPE);
+    while(!AiNodeIteratorFinished(iter))
+    {
+      AtNode * node = AiNodeIteratorGetNext(iter);
+      if(!node)
+        continue;
+
+      // Currently assuming matrix are all identity and all transformation are recorded in vertex position
+      uint32_t numElem = AiArrayGetNumElements(AiNodeGetArray(node, AtString("vlist")));
+      std::vector<AtVector> points;
+      if(numElem)
+      {
+        points.assign(static_cast<size_t>(numElem), AtVector());
+        for(size_t i = 0; i < static_cast<size_t>(numElem); ++i)
+        {
+          points[i] = AiArrayGetVec(AiNodeGetArray(node, AtString("vlist")), i);
+        }
+
+        float minX{ points[0].x}, minY{ points[0].y}, minZ{ points[0].z};
+        float maxX{ minX }, maxY{ minY }, maxZ{ minZ };
+        for(auto i: points)
+        {
+          minX = i.x < minX ? i.x : minX;
+          minY = i.y < minY ? i.y : minY;
+          minZ = i.z < minZ ? i.z : minZ;
+          maxX = i.x > maxX ? i.x : maxX;
+          maxY = i.y > maxY ? i.y : maxY;
+          maxZ = i.z > maxZ ? i.z : maxZ;
+        }
+        m_meshBounds.emplace_back(Imath::V3f(minX, minY,minZ), Imath::V3f(maxX, maxY, maxZ));
+      }
+    }
+    AiNodeIteratorDestroy(iter);
+  }
+}
+
+std::vector<Imath::Box3f> ExternalProcedural::getMeshBounds() const
+{
+  return m_meshBounds;
+}
+
