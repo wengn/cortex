@@ -1030,6 +1030,10 @@ IECoreScene::ExternalProceduralPtr convertRenderProxy(pxr::UsdPrim variantSet, p
   mayaRefAttr.Get(&filePath, time);
   IECoreScene::ExternalProceduralPtr result = new IECoreScene::ExternalProcedural( "procedural", Imath::Box3f(Imath::V3f( -0.5 ), Imath::V3f( 0.5 )));
   result->parameters()->writable()["filename"] = new IECore::StringData( filePath.GetAssetPath() );
+
+  // add polymesh bounding box calculation
+  // Note: this only happens if you import USD wrapped ass, but you could extend it to regular ass import
+  result->readMeshPoints();
   return result;
 }
 

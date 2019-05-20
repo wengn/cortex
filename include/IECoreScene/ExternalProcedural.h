@@ -38,6 +38,8 @@
 #include "IECoreScene/Export.h"
 #include "IECoreScene/VisibleRenderable.h"
 
+#include "ai_vector.h"
+
 namespace IECoreScene
 {
 
@@ -68,11 +70,16 @@ class IECORESCENE_API ExternalProcedural : public VisibleRenderable
 		void render( Renderer *renderer ) const override;
 		Imath::Box3f bound() const override;
 
+    void readMeshPoints();
+    std::vector<Imath::Box3f> getMeshBounds() const;
+
 	private :
 
 		std::string m_fileName;
 		Imath::Box3f m_bound;
 		IECore::CompoundDataPtr m_parameters;
+
+    std::vector<Imath::Box3f> m_meshBounds; //Naiqi's change
 
 };
 
