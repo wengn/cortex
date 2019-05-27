@@ -208,8 +208,33 @@ void ExternalProcedural::readMeshPoints()
           maxZ = i.z > maxZ ? i.z : maxZ;
         }
         m_meshBounds.emplace_back(Imath::V3f(minX, minY,minZ), Imath::V3f(maxX, maxY, maxZ));
-      }
+
+
+        //Add mesh points information
+        float* vlist = (float *)AiArrayMap(AiNodeGetArray(node, AtString("vlist")));
+        std::vector<Imath::V3f> pointList;
+        auto i = 0;
+        while(i < numElem * 3)
+        {
+          pointList.emplace_back(vlist[i], vlist[i+1], vlist[i+2]);
+          i+=3;
+        }
+        if(pointList.size() != numElem)
+          std::cout<<"Something is wrong reading the mesh points."<<std::endl;
+
+        m_meshes.emplace_back(pointList);
+
+        int * vIndex = (int *)AiArrayMap(AiNodeGetArray(node, AtString("vidxs")));
+        uint32_t numVIndex = AiArrayGetNumElements(AiNodeGetArray(node, AtString("vidxs")));
+        std::vector<int> indexList;
+        indexList.resize(numVIndex);
+        for(auto j = 0; j < numVIndex; ++j)
+        {
+          indexList[j] = vIndex[j];
+        }
+        m_vertIndices.emplace_back(indexList);
     }
+  }
     AiNodeIteratorDestroy(iter);
   }
 }
@@ -219,3 +244,11 @@ std::vector<Imath::Box3f> ExternalProcedural::getMeshBounds() const
   return m_meshBounds;
 }
 
+std::vector<std::vector<Imath::V3f>> ExternalProcedural::getMeshPoints() const
+{
+  return m_meshes;
+}
+std::vector<std::vector<int>> ExternalProcedural::getIndices() const
+{
+  return m_vertIndices;
+}
