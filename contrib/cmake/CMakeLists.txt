@@ -260,11 +260,12 @@ endif()
 # IECoreScene
 if( ${WITH_IECORE_SCENE} )
     # Library
+    find_package( Arnold REQUIRED )
     file( GLOB IECORESCENE_CXX_FILES ${CORTEX_SOURCE_DIR}/src/IECoreScene/*.cpp )
     file( GLOB IECORESCENE_H_FILES ${CORTEX_SOURCE_DIR}/include/IECoreScene/*.h ${CORTEX_SOURCE_DIR}/include/IECoreScene/*.inl )
     file( GLOB IECORESCENE_PY_FILES ${CORTEX_SOURCE_DIR}/python/IECoreScene/*.py )
     add_library( IECoreScene SHARED ${IECORESCENE_CXX_FILES} ${IECORESCENE_H_FILES} )
-    target_link_libraries( IECoreScene IECore ${BASE_LIBS} ${FREETYPE_LIBRARIES} ${PNG_LIBRARIES} )
+    target_link_libraries( IECoreScene IECore ${BASE_LIBS} ${FREETYPE_LIBRARIES} ${PNG_LIBRARIES} ${CORTEX_ARNOLD_LIBS} )
     add_dependencies( IECoreScene IECore )
     install( TARGETS IECoreScene DESTINATION lib/ )
     install( FILES ${IECORESCENE_H_FILES} DESTINATION include/IECoreScene )
