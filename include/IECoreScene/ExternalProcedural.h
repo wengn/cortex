@@ -74,6 +74,7 @@ class IECORESCENE_API ExternalProcedural : public VisibleRenderable
     std::vector<Imath::Box3f> getMeshBounds() const;
     std::vector<std::vector<Imath::V3f>> getMeshPoints() const;
     std::vector<std::vector<int>> getIndices() const;
+    std::vector<std::vector<int>> getVertCount() const;
 
 	private :
 
@@ -84,7 +85,7 @@ class IECORESCENE_API ExternalProcedural : public VisibleRenderable
     std::vector<Imath::Box3f> m_meshBounds; //Naiqi's change
     std::vector<std::vector<Imath::V3f>> m_meshes; //Naiqi's change
     std::vector<std::vector<int>> m_vertIndices; //Naiqi's change
-
+    std::vector<std::vector<int>> m_vertCounts; //Number of vertex per face
 };
 
 IE_CORE_DECLAREPTR( ExternalProcedural );
