@@ -222,7 +222,7 @@ void ExternalProcedural::readMeshPoints()
         if(pointList.size() != numElem)
           std::cout<<"Something is wrong reading the mesh points."<<std::endl;
 
-        m_meshes.emplace_back(pointList);
+        m_meshes.push_back(std::move(pointList));
 
         int * vIndex = (int *)AiArrayMap(AiNodeGetArray(node, AtString("vidxs")));
         uint32_t numVIndex = AiArrayGetNumElements(AiNodeGetArray(node, AtString("vidxs")));
@@ -232,7 +232,18 @@ void ExternalProcedural::readMeshPoints()
         {
           indexList[j] = vIndex[j];
         }
-        m_vertIndices.emplace_back(indexList);
+        m_vertIndices.push_back(std::move(indexList));
+
+        int * verCount = (int *)AiArrayMap(AiNodeGetArray(node, AtString("nsides")));
+        uint32_t numVerCount = AiArrayGetNumElements(AiNodeGetArray(node, AtString("nsides")));
+        std::vector<int> verCountList;
+        verCountList.resize(numVerCount);
+        for(auto k = 0; k < numVerCount; ++k)
+        {
+          verCountList[k] = verCount[k];
+        }
+        m_vertCounts.push_back(std::move(verCountList));
+
     }
   }
     AiNodeIteratorDestroy(iter);
@@ -251,4 +262,9 @@ std::vector<std::vector<Imath::V3f>> ExternalProcedural::getMeshPoints() const
 std::vector<std::vector<int>> ExternalProcedural::getIndices() const
 {
   return m_vertIndices;
+}
+
+std::vector<std::vector<int>> ExternalProcedural::getVertCount() const
+{
+  return m_vertCounts;
 }
