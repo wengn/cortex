@@ -32,6 +32,7 @@ add_definitions( -DIE_CORE_MAJORVERSION=${IECORE_MAJOR_VERSION}
 
 option( WITH_TESTS "Compile tests" OFF )
 option( WITH_IECORE_PYTHON "Compile IECorePython" ON )
+option( WITH_IECORE_PYTHON_MODULE "Compile IECorePythonModule" ON )  #Naiqi's change
 option( WITH_IECORE_GL "Compile IECoreGL" OFF )
 option( WITH_IECORE_IMAGE "Compile IECoreImage" OFF )
 option( WITH_IECORE_SCENE "Compile IECoreScene" OFF )
@@ -180,7 +181,10 @@ if( ${WITH_IECORE_PYTHON} )
     install( TARGETS IECorePython DESTINATION lib/ )
     install( FILES ${IECOREPYTHON_H_FILES} DESTINATION include/IECorePython )
     # IECorePythonModule
-    add_library( _IECore MODULE ${CORTEX_SOURCE_DIR}/src/IECorePythonModule/IECore.cpp )
+    #add_library( _IECore MODULE ${CORTEX_SOURCE_DIR}/src/IECorePythonModule/IECore.cpp )   #Naiqi's change
+    file( GLOB IECOREPYTHON_MODULE_CXX_FILES ${CORTEX_SOURCE_DIR}/src/IECorePythonModule/*.cpp )
+    file( GLOB IECOREPYTHON_MODULE_H_FILES ${CORTEX_SOURCE_DIR}/src/IECorePythonModule/*.h )
+    add_library( _IECore MODULE ${IECOREPYTHON_MODULE_CXX_FILES} ${IECOREPYTHON_MODULE_H_FILES} )
     target_link_libraries( _IECore IECorePython )
     add_dependencies( _IECore IECore IECorePython )
     if ( WIN32 )
