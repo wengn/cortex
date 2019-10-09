@@ -38,8 +38,6 @@
 #include "IECoreScene/Export.h"
 #include "IECoreScene/VisibleRenderable.h"
 
-#include "ai_vector.h"
-
 namespace IECoreScene
 {
 

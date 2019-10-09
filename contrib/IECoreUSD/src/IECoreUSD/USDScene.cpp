@@ -898,7 +898,7 @@ void convertPrimVar( IECoreScene::PrimitivePtr primitive, const pxr::UsdGeomPrim
         std::string cleanedPrimvarName = cleanPrimVarName( primVar.GetName() );
         if(cleanedPrimvarName == "st")
         {
-            GeometricTypedData<std::vector<Imath_2_2::V2f>>* uvData = dynamic_cast<GeometricTypedData<std::vector<Imath_2_2::V2f>>*>(data.get());
+            GeometricTypedData<std::vector<Imath::V2f>>* uvData = dynamic_cast<GeometricTypedData<std::vector<Imath::V2f>>*>(data.get());
             uvData->setInterpretation(GeometricData::UV);
             primitive->variables["uv"] = IECoreScene::PrimitiveVariable( interpolation, data, indices );
         }
