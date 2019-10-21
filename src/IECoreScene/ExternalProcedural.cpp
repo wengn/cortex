@@ -185,6 +185,7 @@ void ExternalProcedural::readMeshPoints()
       if(!node)
         continue;
 
+      // If this is a polymesh
       // Currently assuming matrix are all identity and all transformation are recorded in vertex position
       uint32_t numElem = AiArrayGetNumElements(AiNodeGetArray(node, AtString("vlist")));
       std::vector<AtVector> points;
@@ -243,7 +244,31 @@ void ExternalProcedural::readMeshPoints()
           verCountList[k] = verCount[k];
         }
         m_vertCounts.push_back(std::move(verCountList));
+    }
 
+    //If there is no meshes, only curves
+    uint32_t numPoints = AiArrayGetNumElements(AiNodeGetArray(node, AtString("points")));
+    std::vector<AtVector> curvePoints;
+    if(numPoints)
+    {
+      curvePoints.assign(static_cast<size_t>(numPoints), AtVector());
+      for(size_t i = 0; i < static_cast<size_t>(numPoints); ++i)
+      {
+        curvePoints[i] = AiArrayGetVec(AiNodeGetArray(node, AtString("points")), i);
+      }
+
+      float minX{ curvePoints[0].x}, minY{ curvePoints[0].y}, minZ{ curvePoints[0].z};
+      float maxX{ minX }, maxY{ minY }, maxZ{ minZ };
+      for(auto i: curvePoints)
+      {
+        minX = i.x < minX ? i.x : minX;
+        minY = i.y < minY ? i.y : minY;
+        minZ = i.z < minZ ? i.z : minZ;
+        maxX = i.x > maxX ? i.x : maxX;
+        maxY = i.y > maxY ? i.y : maxY;
+        maxZ = i.z > maxZ ? i.z : maxZ;
+      }
+      m_meshBounds.emplace_back(Imath::V3f(minX, minY,minZ), Imath::V3f(maxX, maxY, maxZ));
     }
   }
     AiNodeIteratorDestroy(iter);
