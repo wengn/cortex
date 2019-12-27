@@ -32,7 +32,7 @@ add_definitions( -DIE_CORE_MAJORVERSION=${IECORE_MAJOR_VERSION}
 
 option( WITH_TESTS "Compile tests" OFF )
 option( WITH_IECORE_PYTHON "Compile IECorePython" ON )
-option( WITH_IECORE_PYTHON_MODULE "Compile IECorePythonModule" ON )
+option( WITH_IECORE_PYTHON_MODULE "Compile IECorePythonModule" ON )  #Naiqi's change
 option( WITH_IECORE_GL "Compile IECoreGL" OFF )
 option( WITH_IECORE_IMAGE "Compile IECoreImage" OFF )
 option( WITH_IECORE_SCENE "Compile IECoreScene" OFF )
@@ -111,7 +111,7 @@ find_package( Threads REQUIRED )
 find_package( ZLIB REQUIRED )
 find_package( TBB REQUIRED )
 find_package( PythonLibs 2.7 REQUIRED )
-find_package( Boost REQUIRED COMPONENTS signals iostreams filesystem date_time timer wave regex system chrono python )
+find_package( Boost REQUIRED COMPONENTS signals iostreams filesystem date_time timer wave regex system chrono python )  #Naiqi's change
 find_package( IlmBase REQUIRED )
 find_package( OpenEXR REQUIRED )
 find_package( Freetype REQUIRED )
@@ -138,7 +138,7 @@ set( BASE_LIBS
      ${Boost_IOSTREAMS_LIBRARY}
      ${Boost_FILESYSTEM_LIBRARY}
      ${Boost_DATE_TIME_LIBRARY}
-     ${Boost_TIMER_LIBRARY}	#Naiqi's change
+     ${Boost_TIMER_LIBRARY}   #Naiqi's change
      ${Boost_THREAD_LIBRARY}
      ${Boost_WAVE_LIBRARY}
      ${Boost_REGEX_LIBRARY}
@@ -180,16 +180,15 @@ if( ${WITH_IECORE_PYTHON} )
     install( TARGETS IECorePython DESTINATION lib/ )
     install( FILES ${IECOREPYTHON_H_FILES} DESTINATION include/IECorePython )
     # IECorePythonModule
-    #add_library( _IECore MODULE ${CORTEX_SOURCE_DIR}/src/IECorePythonModule/IECore.cpp )
     file( GLOB IECOREPYTHON_MODULE_CXX_FILES ${CORTEX_SOURCE_DIR}/src/IECorePythonModule/*.cpp )
     file( GLOB IECOREPYTHON_MODULE_H_FILES ${CORTEX_SOURCE_DIR}/src/IECorePythonModule/*.h )
-    add_library( _IECore MODULE ${IECOREPYTHON_MODULE_CXX_FILES} ${IECOREPYTHON_MODULE_H_FILES} )
+    add_library( _IECore MODULE ${IECOREPYTHON_MODULE_CXX_FILES} ${IECOREPYTHON_MODULE_H_FILES} ) #Naiqi's change
     target_link_libraries( _IECore IECorePython )
     add_dependencies( _IECore IECore IECorePython )
     if ( WIN32 )
         set_target_properties( _IECore PROPERTIES SUFFIX ".pyd" )
     endif()
-    set_target_properties(_IECore PROPERTIES PREFIX "")
+    set_target_properties(_IECore PROPERTIES PREFIX "")  #Naiqi's change: get rid of prefix "lib" for python library
     # Install
     install( TARGETS _IECore DESTINATION python/IECore )
     install( FILES ${IECORE_PY_FILES} DESTINATION python/IECore )
@@ -220,7 +219,7 @@ if( ${WITH_IECORE_GL} )
         if ( WIN32 )
             set_target_properties( _IECoreGL PROPERTIES SUFFIX ".pyd" )
         endif()
-        set_target_properties(_IECoreGL PROPERTIES PREFIX "")
+        set_target_properties(_IECoreGL PROPERTIES PREFIX "")  #Naiqi's change: get rid of prefix "lib" for python library
         install( TARGETS _IECoreGL DESTINATION python/IECoreGL )
         install( FILES ${IECOREGL_PY_FILES} DESTINATION python/IECoreGL )
     endif()
@@ -251,7 +250,7 @@ if( ${WITH_IECORE_IMAGE} )
         if ( WIN32 )
             set_target_properties( _IECoreImage PROPERTIES SUFFIX ".pyd" )
         endif()
-        set_target_properties(_IECoreImage PROPERTIES PREFIX "")
+        set_target_properties(_IECoreImage PROPERTIES PREFIX "")  #Naiqi's change: get rid of prefix "lib" for python library
         install( TARGETS _IECoreImage DESTINATION python/IECoreImage )
         install( FILES ${IECOREIMAGE_PY_FILES} DESTINATION python/IECoreImage )
         install( FILES ${IECOREIMAGEBINDINGS_H_FILES} DESTINATION include/IECoreImageBindings )
@@ -261,11 +260,12 @@ endif()
 # IECoreScene
 if( ${WITH_IECORE_SCENE} )
     # Library
+    find_package( Arnold REQUIRED )
     file( GLOB IECORESCENE_CXX_FILES ${CORTEX_SOURCE_DIR}/src/IECoreScene/*.cpp )
     file( GLOB IECORESCENE_H_FILES ${CORTEX_SOURCE_DIR}/include/IECoreScene/*.h ${CORTEX_SOURCE_DIR}/include/IECoreScene/*.inl )
     file( GLOB IECORESCENE_PY_FILES ${CORTEX_SOURCE_DIR}/python/IECoreScene/*.py )
     add_library( IECoreScene SHARED ${IECORESCENE_CXX_FILES} ${IECORESCENE_H_FILES} )
-    target_link_libraries( IECoreScene IECore ${BASE_LIBS} ${FREETYPE_LIBRARIES} ${PNG_LIBRARIES} )
+    target_link_libraries( IECoreScene IECore ${BASE_LIBS} ${FREETYPE_LIBRARIES} ${PNG_LIBRARIES} ${CORTEX_ARNOLD_LIBS} )
     add_dependencies( IECoreScene IECore )
     install( TARGETS IECoreScene DESTINATION lib/ )
     install( FILES ${IECORESCENE_H_FILES} DESTINATION include/IECoreScene )
@@ -280,7 +280,7 @@ if( ${WITH_IECORE_SCENE} )
         if ( WIN32 )
             set_target_properties( _IECoreScene PROPERTIES SUFFIX ".pyd" )
         endif()
-        set_target_properties(_IECoreScene PROPERTIES PREFIX "")
+        set_target_properties(_IECoreScene PROPERTIES PREFIX "")  #Naiqi's change: get rid of prefix "lib" for python library
         install( TARGETS _IECoreScene DESTINATION python/IECoreScene )
         install( FILES ${IECORESCENE_PY_FILES} DESTINATION python/IECoreScene )
     endif()
@@ -311,7 +311,7 @@ if( ${WITH_IECORE_ALEMBIC} )
         if ( WIN32 )
             set_target_properties( _IECoreAlembic PROPERTIES SUFFIX ".pyd" )
         endif()
-        set_target_properties(_IECoreAlembic PROPERTIES PREFIX "")
+        set_target_properties(_IECoreAlembic PROPERTIES PREFIX "")  #Naiqi's change: get rid of prefix "lib" for python library
         install( TARGETS _IECoreAlembic DESTINATION python/IECoreAlembic )
         install( FILES ${IECOREALEMBIC_PY_FILES} DESTINATION python/IECoreAlembic )
     endif()
@@ -373,7 +373,7 @@ if( ${WITH_IECORE_ARNOLD} )
         if ( WIN32 )
             set_target_properties( _IECoreArnold PROPERTIES SUFFIX ".pyd" )
         endif()
-        set_target_properties(_IECoreArnold PROPERTIES PREFIX "")
+        set_target_properties(_IECoreArnold PROPERTIES PREFIX "")  #Naiqi's change: get rid of prefix "lib" for python library
         install( TARGETS _IECoreArnold DESTINATION python/IECoreArnold )
         install( FILES ${IECOREARNOLD_PY_FILES} DESTINATION python/IECoreArnold )
     endif()
@@ -414,7 +414,7 @@ if( ${WITH_IECORE_APPLESEED} )
         if ( WIN32 )
             set_target_properties( _IECoreAppleseed PROPERTIES SUFFIX ".pyd" )
         endif()
-        set_target_properties(_IECoreAppleseed PROPERTIES PREFIX "")
+        set_target_properties(_IECoreAppleseed PROPERTIES PREFIX "")  #Naiqi's change: get rid of prefix "lib" for python library
         install( TARGETS _IECoreAppleseed DESTINATION python/IECoreAppleseed )
         install( FILES ${IECOREAPPLESEED_PY_FILES} DESTINATION python/IECoreAppleseed )
     endif()
@@ -455,7 +455,7 @@ if( ${WITH_IECORE_USD} )
         if ( WIN32 )
             set_target_properties( _IECoreUSD PROPERTIES SUFFIX ".pyd" )
         endif()
-        set_target_properties(_IECoreUSD PROPERTIES PREFIX "")
+        set_target_properties(_IECoreUSD PROPERTIES PREFIX "")  #Naiqi's change: get rid of prefix "lib" for python library
         install( TARGETS _IECoreUSD DESTINATION python/IECoreUSD )
         install( FILES ${IECOREUSD_PY_FILES} DESTINATION python/IECoreUSD )
     endif()

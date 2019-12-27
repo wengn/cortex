@@ -35,6 +35,7 @@
 #include "USDScene.h"
 
 #include "IECoreScene/CurvesPrimitive.h"
+#include "IECoreScene/ExternalProcedural.h"
 #include "IECoreScene/MeshPrimitive.h"
 #include "IECoreScene/PointsPrimitive.h"
 #include "IECoreScene/Camera.h"
@@ -48,8 +49,11 @@ IECORE_PUSH_DEFAULT_VISIBILITY
 #include "pxr/base/gf/matrix3f.h"
 #include "pxr/base/gf/matrix4d.h"
 #include "pxr/base/gf/matrix4f.h"
+#include "pxr/usd/sdf/assetPath.h"
 #include "pxr/usd/usd/collectionAPI.h"
 #include "pxr/usd/usd/stage.h"
+#include "pxr/usd/usd/object.h"
+#include "pxr/usd/usd/variantSets.h"
 #include "pxr/usd/usdGeom/basisCurves.h"
 #include "pxr/usd/usdGeom/bboxCache.h"
 #include "pxr/usd/usdGeom/mesh.h"
@@ -891,8 +895,15 @@ void convertPrimVar( IECoreScene::PrimitivePtr primitive, const pxr::UsdGeomPrim
 			convert( indices, srcIndices );
 		}
 
-		std::string cleanedPrimvarName = cleanPrimVarName( primVar.GetName() );
-		primitive->variables[cleanedPrimvarName] = IECoreScene::PrimitiveVariable( interpolation, data, indices );
+        std::string cleanedPrimvarName = cleanPrimVarName( primVar.GetName() );
+        if(cleanedPrimvarName == "st")
+        {
+            GeometricTypedData<std::vector<Imath::V2f>>* uvData = dynamic_cast<GeometricTypedData<std::vector<Imath::V2f>>*>(data.get());
+            uvData->setInterpretation(GeometricData::UV);
+            primitive->variables["uv"] = IECoreScene::PrimitiveVariable( interpolation, data, indices );
+        }
+        else
+            primitive->variables[cleanedPrimvarName] = IECoreScene::PrimitiveVariable( interpolation, data, indices );
 	}
 	else
 	{
@@ -1016,6 +1027,21 @@ IECoreScene::CurvesPrimitivePtr convertPrimitive( pxr::UsdGeomCurves curves, pxr
 
 	convertPrimVars( curves, newCurves, time );
 	return newCurves;
+}
+
+// convert selected variantSet ass to external procedural object so that Gaffer can render using this ass file
+IECoreScene::ExternalProceduralPtr convertRenderProxy(pxr::UsdPrim variantSet, pxr::UsdTimeCode time)
+{
+  pxr::UsdAttribute mayaRefAttr = variantSet.GetAttribute(pxr::TfToken("mayaReference"));
+  pxr::SdfAssetPath filePath;
+  mayaRefAttr.Get(&filePath, time);
+  IECoreScene::ExternalProceduralPtr result = new IECoreScene::ExternalProcedural( "procedural", Imath::Box3f(Imath::V3f( -0.5 ), Imath::V3f( 0.5 )));
+  result->parameters()->writable()["filename"] = new IECore::StringData( filePath.GetAssetPath() );
+
+  // add polymesh bounding box calculation
+  // Note: this only happens if you import USD wrapped ass, but you could extend it to regular ass import
+  result->readMeshPoints();
+  return result;
 }
 
 IECoreScene::MeshPrimitivePtr convertPrimitive( pxr::UsdGeomMesh mesh, pxr::UsdTimeCode time )
@@ -1265,14 +1291,28 @@ bool isConvertible( pxr::UsdPrim prim )
 		return true;
 	}
 
+  // Special handling of "ALMayaReference" node in variantSet
+  // "ALMayaReference" and "mayaReference" are values that are hardcoded in Anim logic exporting
+  // therefore they are reliable to use
+  if(prim && prim.GetTypeName().GetString() == "ALMayaReference")
+  {
+    pxr::SdfAssetPath filePath;
+    prim.GetAttribute(pxr::TfToken("mayaReference")).Get(&filePath);
+
+    std::string finalPath = filePath.GetAssetPath();
+    if(finalPath.substr(finalPath.find_last_of('.')+1) == "ass")
+      return true;
+    else return false;
+  }
+
 	return false;
 }
 
 IECore::ConstObjectPtr convertPrimitive( pxr::UsdPrim prim, pxr::UsdTimeCode time )
 {
 	if( pxr::UsdGeomMesh mesh = pxr::UsdGeomMesh( prim ) )
-	{
-		return convertPrimitive( mesh, time );
+  {
+    return convertPrimitive( mesh, time );
 	}
 
 	if( pxr::UsdGeomPoints points = pxr::UsdGeomPoints( prim ) )
@@ -1289,6 +1329,19 @@ IECore::ConstObjectPtr convertPrimitive( pxr::UsdPrim prim, pxr::UsdTimeCode tim
 	{
 		return convertPrimitive( curves, time );
 	}
+
+  // Special handling of "ALMayaReference" node in variantSet
+  // "ALMayaReference" and "mayaReference" are values that are hardcoded in Anim logic exporting
+  // therefore they are reliable to use
+  if(prim && prim.GetTypeName().GetString() == "ALMayaReference")
+  {
+    pxr::SdfAssetPath filePath;
+    prim.GetAttribute(pxr::TfToken("mayaReference")).Get(&filePath);
+
+    std::string finalPath = filePath.GetAssetPath();
+    if(finalPath.substr(finalPath.find_last_of('.')+1) == "ass")
+      return convertRenderProxy( prim, time );
+  }
 
 	return nullptr;
 }
@@ -1410,8 +1463,8 @@ class USDScene::Reader : public USDScene::IO
 {
 	public:
 		Reader( const std::string &fileName ) : IO( fileName )
-		{
-			m_usdStage = pxr::UsdStage::Open( fileName );
+        {
+            m_usdStage = pxr::UsdStage::Open( fileName );
 
 			if ( !m_usdStage )
 			{
@@ -1420,6 +1473,7 @@ class USDScene::Reader : public USDScene::IO
 
 			m_timeCodesPerSecond = m_usdStage->GetTimeCodesPerSecond();
 			m_rootPrim = m_usdStage->GetPseudoRoot();
+
 		}
 
 		pxr::UsdPrim root() const override
@@ -2065,12 +2119,10 @@ void USDScene::childNames( SceneInterface::NameList &childNames ) const
 {
 	for( const auto &i : m_location->prim.GetAllChildren() )
 	{
-		pxr::UsdGeomXformable xformable ( i );
+        pxr::UsdPrim layerPrim(i);
 
-		if( xformable )
-		{
-			childNames.push_back( IECore::InternedString( i.GetName() ) );
-		}
+        if(layerPrim)
+          childNames.push_back(IECore::InternedString(layerPrim.GetName()));
 	}
 }
 

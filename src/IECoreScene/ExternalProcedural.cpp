@@ -36,8 +36,16 @@
 
 #include "IECoreScene/Renderer.h"
 
+#include "IECoreArnold/NodeAlgo.h" //Naiqi's change
+#include "IECoreArnold/ParameterAlgo.h" //Naiqi's change
+#include "ai.h" //Naiqi's change
+#include "ai_array.h"
+#include "IECore/SimpleTypedData.h"
+#include "IECoreArnold/ParameterAlgo.h"
+
 using namespace IECore;
 using namespace IECoreScene;
+using namespace IECoreArnold; //Naiqi's change
 
 IE_CORE_DEFINEOBJECTTYPEDESCRIPTION( ExternalProcedural );
 
@@ -125,6 +133,7 @@ void ExternalProcedural::load( LoadContextPtr context )
 	container->read( g_boundEntry, b, 6 );
 
 	m_parameters = context->load<CompoundData>( container.get(), g_parametersEntry );
+
 }
 
 bool ExternalProcedural::isEqualTo( const Object *other ) const
@@ -156,4 +165,131 @@ void ExternalProcedural::hash( MurmurHash &h ) const
 	h.append( m_fileName );
 	h.append( m_bound );
 	m_parameters->hash( h );
+}
+
+//Naiqi's change
+//Parse the ass file and parse polymesh info
+void ExternalProcedural::readMeshPoints()
+{
+  // Current implementation: the ass file path is not stored on the m_fileName, you have to get the information this way
+  const StringData* filePath = parameters()->member< StringData >(InternedString("filename"));
+  if(!filePath)
+    return;
+
+  if(AiASSLoad(filePath->readable().c_str(), AI_NODE_SHAPE) != -1)
+  {
+    AtNodeIterator * iter = AiUniverseGetNodeIterator(AI_NODE_SHAPE);
+    while(!AiNodeIteratorFinished(iter))
+    {
+      AtNode * node = AiNodeIteratorGetNext(iter);
+      if(!node)
+        continue;
+
+      // If this is a polymesh
+      // Currently assuming matrix are all identity and all transformation are recorded in vertex position
+      uint32_t numElem = AiArrayGetNumElements(AiNodeGetArray(node, AtString("vlist")));
+      std::vector<AtVector> points;
+      if(numElem)
+      {
+        points.assign(static_cast<size_t>(numElem), AtVector());
+        for(size_t i = 0; i < static_cast<size_t>(numElem); ++i)
+        {
+          points[i] = AiArrayGetVec(AiNodeGetArray(node, AtString("vlist")), i);
+        }
+
+        float minX{ points[0].x}, minY{ points[0].y}, minZ{ points[0].z};
+        float maxX{ minX }, maxY{ minY }, maxZ{ minZ };
+        for(auto i: points)
+        {
+          minX = i.x < minX ? i.x : minX;
+          minY = i.y < minY ? i.y : minY;
+          minZ = i.z < minZ ? i.z : minZ;
+          maxX = i.x > maxX ? i.x : maxX;
+          maxY = i.y > maxY ? i.y : maxY;
+          maxZ = i.z > maxZ ? i.z : maxZ;
+        }
+        m_meshBounds.emplace_back(Imath::V3f(minX, minY,minZ), Imath::V3f(maxX, maxY, maxZ));
+
+
+        //Add mesh points information
+        float* vlist = (float *)AiArrayMap(AiNodeGetArray(node, AtString("vlist")));
+        std::vector<Imath::V3f> pointList;
+        auto i = 0;
+        while(i < numElem * 3)
+        {
+          pointList.emplace_back(vlist[i], vlist[i+1], vlist[i+2]);
+          i+=3;
+        }
+        if(pointList.size() != numElem)
+          std::cout<<"Something is wrong reading the mesh points."<<std::endl;
+
+        m_meshes.push_back(std::move(pointList));
+
+        int * vIndex = (int *)AiArrayMap(AiNodeGetArray(node, AtString("vidxs")));
+        uint32_t numVIndex = AiArrayGetNumElements(AiNodeGetArray(node, AtString("vidxs")));
+        std::vector<int> indexList;
+        indexList.resize(numVIndex);
+        for(auto j = 0; j < numVIndex; ++j)
+        {
+          indexList[j] = vIndex[j];
+        }
+        m_vertIndices.push_back(std::move(indexList));
+
+        int * verCount = (int *)AiArrayMap(AiNodeGetArray(node, AtString("nsides")));
+        uint32_t numVerCount = AiArrayGetNumElements(AiNodeGetArray(node, AtString("nsides")));
+        std::vector<int> verCountList;
+        verCountList.resize(numVerCount);
+        for(auto k = 0; k < numVerCount; ++k)
+        {
+          verCountList[k] = verCount[k];
+        }
+        m_vertCounts.push_back(std::move(verCountList));
+    }
+
+    //If there is no meshes, only curves
+    uint32_t numPoints = AiArrayGetNumElements(AiNodeGetArray(node, AtString("points")));
+    std::vector<AtVector> curvePoints;
+    if(numPoints)
+    {
+      curvePoints.assign(static_cast<size_t>(numPoints), AtVector());
+      for(size_t i = 0; i < static_cast<size_t>(numPoints); ++i)
+      {
+        curvePoints[i] = AiArrayGetVec(AiNodeGetArray(node, AtString("points")), i);
+      }
+
+      float minX{ curvePoints[0].x}, minY{ curvePoints[0].y}, minZ{ curvePoints[0].z};
+      float maxX{ minX }, maxY{ minY }, maxZ{ minZ };
+      for(auto i: curvePoints)
+      {
+        minX = i.x < minX ? i.x : minX;
+        minY = i.y < minY ? i.y : minY;
+        minZ = i.z < minZ ? i.z : minZ;
+        maxX = i.x > maxX ? i.x : maxX;
+        maxY = i.y > maxY ? i.y : maxY;
+        maxZ = i.z > maxZ ? i.z : maxZ;
+      }
+      m_meshBounds.emplace_back(Imath::V3f(minX, minY,minZ), Imath::V3f(maxX, maxY, maxZ));
+    }
+  }
+    AiNodeIteratorDestroy(iter);
+  }
+}
+
+std::vector<Imath::Box3f> ExternalProcedural::getMeshBounds() const
+{
+  return m_meshBounds;
+}
+
+std::vector<std::vector<Imath::V3f>> ExternalProcedural::getMeshPoints() const
+{
+  return m_meshes;
+}
+std::vector<std::vector<int>> ExternalProcedural::getIndices() const
+{
+  return m_vertIndices;
+}
+
+std::vector<std::vector<int>> ExternalProcedural::getVertCount() const
+{
+  return m_vertCounts;
 }

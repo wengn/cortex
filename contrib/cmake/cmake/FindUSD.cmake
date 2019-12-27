@@ -57,8 +57,7 @@ set( USD_LIBRARIES
         plug
         sdf
         tf
-        #tracelite
-        trace      #Naiqi's change
+        trace       #Naiqi's change
         usd
         vt
 )
