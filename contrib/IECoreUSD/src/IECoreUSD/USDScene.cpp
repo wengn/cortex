@@ -2118,7 +2118,6 @@ bool USDScene::hasChild( const SceneInterface::Name &name ) const
 void USDScene::childNames( SceneInterface::NameList &childNames ) const
 {
     for(const auto &i : m_location->prim.GetFilteredChildren(pxr::UsdTraverseInstanceProxies()))
-    //for( const auto &i : m_location->prim.GetAllChildren() )
 	{
         pxr::UsdPrim layerPrim(i);
 
