@@ -2117,7 +2117,8 @@ bool USDScene::hasChild( const SceneInterface::Name &name ) const
 
 void USDScene::childNames( SceneInterface::NameList &childNames ) const
 {
-	for( const auto &i : m_location->prim.GetAllChildren() )
+    for(const auto &i : m_location->prim.GetFilteredChildren(pxr::UsdTraverseInstanceProxies()))
+    //for( const auto &i : m_location->prim.GetAllChildren() )
 	{
         pxr::UsdPrim layerPrim(i);
 
@@ -2260,8 +2261,16 @@ void USDScene::objectHash( double time, IECore::MurmurHash &h ) const
 {
 	if( isConvertible( m_location->prim ) )
 	{
-		h.append( m_location->prim.GetPath().GetString() );
-		h.append( m_root->fileName() );
+        if( m_location->prim.IsInstance())
+        {
+            h.append( m_location->prim.GetMaster().GetPath().GetString());
+            h.append( m_root->fileName());
+        }
+        else
+         {
+            h.append( m_location->prim.GetPath().GetString() );
+            h.append( m_root->fileName() );
+        }
 
 		if( isTimeVarying( m_location->prim ) )
 		{
