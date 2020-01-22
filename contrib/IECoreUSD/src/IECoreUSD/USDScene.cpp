@@ -31,7 +31,6 @@
 //  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //////////////////////////////////////////////////////////////////////////
-
 #include "USDScene.h"
 
 #include "IECoreScene/CurvesPrimitive.h"
@@ -1044,6 +1043,68 @@ IECoreScene::ExternalProceduralPtr convertRenderProxy(pxr::UsdPrim variantSet, p
   return result;
 }
 
+IECore::ConstObjectPtr convertCamera( pxr::UsdGeomCamera camera, pxr::UsdTimeCode time)
+{
+    float horizontalAper,  horizontalOff, verticalAper, verticalOff;
+    camera.GetHorizontalApertureAttr().Get(&horizontalAper, time);
+    camera.GetVerticalApertureAttr().Get(&verticalAper, time);
+    camera.GetHorizontalApertureOffsetAttr().Get(&horizontalOff, time);
+    camera.GetVerticalApertureOffsetAttr().Get(&verticalOff, time);
+
+    IECoreScene::CameraPtr result = new IECoreScene::Camera;
+    pxr::TfToken  projToken;
+    camera.GetProjectionAttr().Get(&projToken);
+
+    if(projToken == pxr::UsdGeomTokens->perspective)
+    {
+        result->setProjection("perspective");
+
+        // We store focalLength and aperture in arbitary units.  USD uses tenths
+        // of scene units
+        float scale = 10.0f * result->getFocalLengthWorldScale();
+
+        float focalLengthVal;
+        camera.GetFocalLengthAttr().Get( &focalLengthVal, time );
+        result->setFocalLength(focalLengthVal / scale);
+        result->setAperture(Imath::V2f(horizontalAper / scale, verticalAper / scale));
+        result->setApertureOffset(Imath::V2f(horizontalOff / scale,  verticalOff / scale));
+
+    }
+    else if (projToken == pxr::UsdGeomTokens->orthographic)
+    {
+        result->setProjection("orthographic");
+
+        // For ortho cameras, USD uses aperture units of tenths of scene units
+        result->setAperture(Imath::V2f(horizontalAper / 10.0f, verticalAper / 10.0f));
+        result->setApertureOffset(Imath::V2f(horizontalOff / 10.0f, verticalOff / 10.0f));
+
+     }
+    else { }
+
+    pxr::VtValue clipRangeVal;
+    camera.GetClippingRangeAttr().Get(&clipRangeVal, time);
+    pxr::GfVec2f clipRange = clipRangeVal.Get<pxr::GfVec2f>();
+    result->setClippingPlanes(Imath::V2f(clipRange[0], clipRange[1]));
+
+    float fStop;
+    camera.GetFStopAttr().Get(&fStop, time);
+    result->setFStop(fStop);
+
+    float focusDis;
+    camera.GetFocusDistanceAttr().Get(&focusDis, time);
+    result->setFocusDistance(focusDis);
+
+    double shutterOpen, shutterClose;
+    camera.GetShutterOpenAttr().Get(&shutterOpen, time);
+    camera.GetShutterCloseAttr().Get(&shutterClose, time);
+    result->setShutter(Imath::V2f(shutterOpen, shutterClose));
+
+    return result;
+
+ //   IECoreGL::CameraPtr camera = IECore::runTimeCast<IECoreGL::Camera>( ToGLCameraConverter( defaultCamera ).convert() );
+ //   m_data->implementation->addCamera( camera );
+}
+
 IECoreScene::MeshPrimitivePtr convertPrimitive( pxr::UsdGeomMesh mesh, pxr::UsdTimeCode time )
 {
 	pxr::UsdAttribute subdivSchemeAttr = mesh.GetSubdivisionSchemeAttr();
@@ -1291,6 +1352,12 @@ bool isConvertible( pxr::UsdPrim prim )
 		return true;
 	}
 
+    pxr::UsdGeomCamera camera( prim );
+    if( camera )
+    {
+        return true;
+    }
+
   // Special handling of "ALMayaReference" node in variantSet
   // "ALMayaReference" and "mayaReference" are values that are hardcoded in Anim logic exporting
   // therefore they are reliable to use
@@ -1312,7 +1379,7 @@ IECore::ConstObjectPtr convertPrimitive( pxr::UsdPrim prim, pxr::UsdTimeCode tim
 {
 	if( pxr::UsdGeomMesh mesh = pxr::UsdGeomMesh( prim ) )
   {
-    return convertPrimitive( mesh, time );
+    return  convertPrimitive( mesh, time );
 	}
 
 	if( pxr::UsdGeomPoints points = pxr::UsdGeomPoints( prim ) )
@@ -1329,6 +1396,11 @@ IECore::ConstObjectPtr convertPrimitive( pxr::UsdPrim prim, pxr::UsdTimeCode tim
 	{
 		return convertPrimitive( curves, time );
 	}
+
+    if( pxr::UsdGeomCamera camera = pxr::UsdGeomCamera( prim ))
+    {
+        return convertCamera( camera, time );
+    }
 
   // Special handling of "ALMayaReference" node in variantSet
   // "ALMayaReference" and "mayaReference" are values that are hardcoded in Anim logic exporting
