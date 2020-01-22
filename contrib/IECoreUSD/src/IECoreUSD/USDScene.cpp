@@ -1045,10 +1045,6 @@ IECoreScene::ExternalProceduralPtr convertRenderProxy(pxr::UsdPrim variantSet, p
 
 IECore::ConstObjectPtr convertCamera( pxr::UsdGeomCamera camera, pxr::UsdTimeCode time)
 {
-    pxr::UsdAttribute focalLengthAttr = camera.GetFocalLengthAttr();
-    float focalLengthVal;
-    focalLengthAttr.Get( &focalLengthVal, time );
-
     float horizontalAper,  horizontalOff, verticalAper, verticalOff;
     camera.GetHorizontalApertureAttr().Get(&horizontalAper, time);
     camera.GetVerticalApertureAttr().Get(&verticalAper, time);
@@ -1061,15 +1057,15 @@ IECore::ConstObjectPtr convertCamera( pxr::UsdGeomCamera camera, pxr::UsdTimeCod
 
     if(projToken == pxr::UsdGeomTokens->perspective)
     {
-        result->setProjection("perpective");
+        result->setProjection("perspective");
 
         // We store focalLength and aperture in arbitary units.  USD uses tenths
         // of scene units
         float scale = 10.0f * result->getFocalLengthWorldScale();
 
-        float focalLen;
-        camera.GetFocalLengthAttr().Get(&focalLen , time);
-        result->setFocalLength(focalLen / scale);
+        float focalLengthVal;
+        camera.GetFocalLengthAttr().Get( &focalLengthVal, time );
+        result->setFocalLength(focalLengthVal / scale);
         result->setAperture(Imath::V2f(horizontalAper / scale, verticalAper / scale));
         result->setApertureOffset(Imath::V2f(horizontalOff / scale,  verticalOff / scale));
 
