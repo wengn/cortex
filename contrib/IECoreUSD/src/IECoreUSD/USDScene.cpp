@@ -1100,9 +1100,6 @@ IECore::ConstObjectPtr convertCamera( pxr::UsdGeomCamera camera, pxr::UsdTimeCod
     result->setShutter(Imath::V2f(shutterOpen, shutterClose));
 
     return result;
-
- //   IECoreGL::CameraPtr camera = IECore::runTimeCast<IECoreGL::Camera>( ToGLCameraConverter( defaultCamera ).convert() );
- //   m_data->implementation->addCamera( camera );
 }
 
 IECoreScene::MeshPrimitivePtr convertPrimitive( pxr::UsdGeomMesh mesh, pxr::UsdTimeCode time )
