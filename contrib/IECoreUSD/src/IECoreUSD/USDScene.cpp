@@ -1021,7 +1021,7 @@ IECoreScene::CurvesPrimitivePtr convertPrimitive( pxr::UsdGeomCurves curves, pxr
 
 IECore::ConstObjectPtr convertCamera( pxr::UsdGeomCamera camera, pxr::UsdTimeCode time)
 {
-    float horizontalAper,  horizontalOff, verticalAper, verticalOff;
+    float horizontalAper=20.955,  horizontalOff = 0.0,  verticalAper =15.2908, verticalOff = 0.0;
     camera.GetHorizontalApertureAttr().Get(&horizontalAper, time);
     camera.GetVerticalApertureAttr().Get(&verticalAper, time);
     camera.GetHorizontalApertureOffsetAttr().Get(&horizontalOff, time);
@@ -1039,7 +1039,7 @@ IECore::ConstObjectPtr convertCamera( pxr::UsdGeomCamera camera, pxr::UsdTimeCod
         // of scene units
         float scale = 10.0f * result->getFocalLengthWorldScale();
 
-        float focalLengthVal;
+        float focalLengthVal = 1.0;
         camera.GetFocalLengthAttr().Get( &focalLengthVal, time );
         result->setFocalLength(focalLengthVal / scale);
         result->setAperture(Imath::V2f(horizontalAper / scale, verticalAper / scale));
@@ -1062,15 +1062,15 @@ IECore::ConstObjectPtr convertCamera( pxr::UsdGeomCamera camera, pxr::UsdTimeCod
     pxr::GfVec2f clipRange = clipRangeVal.Get<pxr::GfVec2f>();
     result->setClippingPlanes(Imath::V2f(clipRange[0], clipRange[1]));
 
-    float fStop;
+    float fStop  = 0.0;
     camera.GetFStopAttr().Get(&fStop, time);
     result->setFStop(fStop);
 
-    float focusDis;
+    float focusDis = 1.0;
     camera.GetFocusDistanceAttr().Get(&focusDis, time);
     result->setFocusDistance(focusDis);
 
-    double shutterOpen, shutterClose;
+    double shutterOpen = 0.0, shutterClose = 0.0;
     camera.GetShutterOpenAttr().Get(&shutterOpen, time);
     camera.GetShutterCloseAttr().Get(&shutterClose, time);
     result->setShutter(Imath::V2f(shutterOpen, shutterClose));
@@ -1385,7 +1385,7 @@ IECore::ConstObjectPtr convertPrimitive( pxr::UsdPrim prim, pxr::UsdTimeCode tim
 		return convertPrimitive( sphere, time );
         }
 
-        if( pxr::UsdGeomCamera camera = pxr::UsdGeomCamera( prim )
+        if( pxr::UsdGeomCamera camera = pxr::UsdGeomCamera( prim ))
         {
             return convertCamera( camera, time );
         }
