@@ -41,9 +41,10 @@
 #   APPLESEED_INCLUDE_DIRS  Where to find appleseed header files
 #   APPLESEED_LIBRARIES     List of appleseed libraries to link against
 #
+
 #Naiqi's change
-set(APPLESEED_INCLUDE_DIR /home/naiqi/Downloads/appleseed/include) 
-set(APPLESEED_LIBRARY /home/naiqi/Downloads/appleseed/lib)
+set(APPLESEED_INCLUDE_DIR /home/naiqi/gaffer-dev/gafferDependencies-0.54.2.0-linux/appleseed/include)
+set(APPLESEED_LIBRARY /home/naiqi/gaffer-dev/gafferDependencies-0.54.2.0-linux/appleseed/lib)
 
 include (FindPackageHandleStandardArgs)
 
