@@ -50,7 +50,8 @@
 #include "renderer/api/log.h"
 #include "renderer/api/rendering.h"
 #include "renderer/api/utility.h"
-#include "renderer/api/version.h"
+//#include "renderer/api/version.h"  //Naiqi's change
+#include "foundation/core/version.h"
 
 #include <vector>
 

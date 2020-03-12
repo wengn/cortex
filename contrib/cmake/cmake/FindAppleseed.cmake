@@ -41,6 +41,9 @@
 #   APPLESEED_INCLUDE_DIRS  Where to find appleseed header files
 #   APPLESEED_LIBRARIES     List of appleseed libraries to link against
 #
+#Naiqi's change
+set(APPLESEED_INCLUDE_DIR /home/naiqi/Downloads/appleseed/include) 
+set(APPLESEED_LIBRARY /home/naiqi/Downloads/appleseed/lib)
 
 include (FindPackageHandleStandardArgs)
 
