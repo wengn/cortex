@@ -185,6 +185,10 @@ void ExternalProcedural::readMeshPoints()
       if(!node)
         continue;
 
+      const char* nodeName = AiNodeGetName(node);
+      if (!strcmp(nodeName, "root"))
+          continue;
+
       // Currently assuming matrix are all identity and all transformation are recorded in vertex position
       uint32_t numElem = AiArrayGetNumElements(AiNodeGetArray(node, AtString("vlist")));
       std::vector<AtVector> points;
