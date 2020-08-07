@@ -896,8 +896,15 @@ void convertPrimVar( IECoreScene::PrimitivePtr primitive, const pxr::UsdGeomPrim
 			convert( indices, srcIndices );
 		}
 
-		std::string cleanedPrimvarName = cleanPrimVarName( primVar.GetName() );
-		primitive->variables[cleanedPrimvarName] = IECoreScene::PrimitiveVariable( interpolation, data, indices );
+        std::string cleanedPrimvarName = cleanPrimVarName( primVar.GetName() );
+        if(cleanedPrimvarName == "st")
+        {
+            GeometricTypedData<std::vector<Imath::V2f>>* uvData = dynamic_cast<GeometricTypedData<std::vector<Imath::V2f>>*>(data.get());
+            uvData->setInterpretation(GeometricData::UV);
+            primitive->variables["uv"] = IECoreScene::PrimitiveVariable( interpolation, data, indices );
+        }
+        else
+            primitive->variables[cleanedPrimvarName] = IECoreScene::PrimitiveVariable( interpolation, data, indices );
 	}
 	else
 	{
@@ -1559,8 +1566,8 @@ class USDScene::Reader : public USDScene::IO
 {
 	public:
 		Reader( const std::string &fileName ) : IO( fileName )
-		{
-			m_usdStage = pxr::UsdStage::Open( fileName );
+        {
+            m_usdStage = pxr::UsdStage::Open( fileName );
 
 			if ( !m_usdStage )
 			{
@@ -2228,7 +2235,7 @@ void USDScene::childNames( SceneInterface::NameList &childNames ) const
 
         if(layerPrim)
             childNames.push_back(IECore::InternedString(layerPrim.GetName()));
-	}
+    }
 }
 
 SceneInterfacePtr USDScene::child( const SceneInterface::Name &name, SceneInterface::MissingBehaviour missingBehaviour )
